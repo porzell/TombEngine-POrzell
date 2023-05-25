@@ -11,7 +11,7 @@
 #include "Specific/level.h"
 
 // Creatures
-#include "Objects/TR4/Entity/Wraith.h" // OFF
+#include "Objects/TR4/Entity/tr4_wraith.h" // OFF
 #include "Objects/TR4/Entity/tr4_enemy_jeep.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h" // OK
 #include "Objects/TR4/Entity/tr4_baddy.h" // OK
@@ -43,7 +43,7 @@
 #include "Objects/TR4/Entity/tr4_setha.h"
 
 // Objects
-#include "Objects/TR4/Object/WraithTrap.h"
+#include "Objects/TR4/Object/tr4_wraithtrap.h"
 #include "Objects/TR4/Object/tr4_element_puzzle.h"
 #include "Objects/TR4/Object/tr4_mapper.h"
 #include "Objects/TR4/Object/tr4_sarcophagus.h"
@@ -152,9 +152,9 @@ namespace TEN::Entities
 		obj = &Objects[ID_DOG];
 		if (obj->loaded)
 		{
-			obj->initialise = InitialiseTr4Dog;
+			obj->initialise = InitialiseGuardDog;//InitialiseTr4Dog;
 			obj->collision = CreatureCollision;
-			obj->control = Tr4DogControl;
+			obj->control = GuardDogControl;//Tr4DogControl;
 			obj->shadowType = ShadowMode::All;
 			obj->HitPoints = 18;
 			obj->pivotLength = 50;

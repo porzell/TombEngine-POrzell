@@ -17,6 +17,10 @@
 #include "Specific/level.h"
 #include "Specific/setup.h"
 
+//Peter:
+#include "Game/Lara/lara_helpers.h"
+#include "Game/effects/chaffFX.h"
+
 using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
@@ -33,6 +37,10 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr auto GUARD_NO_WEAPON_ON_HAND_SWAPFLAG = 0x2000;
 
 	constexpr auto GUARD_HEAD_MESH = 14;
+
+	// Peter:
+	constexpr auto GUARD_EMPTY_HAND_BONE = 10;
+	constexpr auto FLARE_LIGHT_COLOR = Vector3(0.8f, 0.42947f, 0.2921f);
 
 	const auto SwatGunBite		  = BiteInfo(Vector3(80.0f, 200.0f, 13.0f), 0);
 	const auto SniperGunBite	  = BiteInfo(Vector3(0.0f, 480.0f, 110.0f), 13);
@@ -82,6 +90,52 @@ namespace TEN::Entities::Creatures::TR5
 		GUARD_STATE_SURRENDER = 39,
 	};
 
+	std::string GuardStateStrings[] =
+	{
+		"None",
+		"Idle",
+		"Turning",
+		"Firing",
+		"Aiming",
+		"Walking",
+		"Incapacitated",
+		"Running",
+		"Incapacitated",
+		"None",
+		"None",
+		"Reloading",
+		"Deploying grenade",
+		"Crouching",
+		"Rappeling",
+		"Sitting",
+		"Standing",
+		"Sleeping",
+		"Waking", // Includes kick to the chair.
+		"Idle",
+		"Climbing",
+		"Climbing",
+		"Climbing",
+		"Climbing down",
+		"Climbing down",
+		"Climbing down",
+
+		"Jumping",
+		"Jumping",
+		"Jumping",
+		"Landing",
+		"Searching",
+		"Abandoning search",
+		"Turning",
+
+		"None","None",
+
+		"Firing",
+		"Using device",
+		"Using keypad",
+		"Using computer system",
+		"Surrendering",
+	};
+
 	enum Mafia2State
 	{
 		// No state 0.
@@ -103,6 +157,12 @@ namespace TEN::Entities::Creatures::TR5
 
 		MAFIA2_STATE_UNDRAW_GUNS = 37
 	};
+
+
+	std::string& GetGuardStateString(short itemNumber) {
+		auto& item = g_Level.Items[itemNumber];
+		return GuardStateStrings[item.Animation.ActiveState];
+	}
 
 	enum SniperState
 	{
@@ -310,6 +370,73 @@ namespace TEN::Entities::Creatures::TR5
 
 	}
 
+	bool GuardDoFlareLight(const Vector3i& pos, int flareLife)
+	{
+		//if (flareLife >= FLARE_LIFE_MAX || flareLife == 0)
+		//	return false;
+
+		float randomFloat = Random::GenerateFloat();
+
+		auto lightPos = pos + Vector3i(
+			randomFloat * 120,
+			(randomFloat * 120) - CLICK(1),
+			randomFloat * 120);
+
+		bool result = false;
+		//bool isEnding = (flareLife > (FLARE_LIFE_MAX - 90));
+		//bool isDying = (flareLife > (FLARE_LIFE_MAX - 5));
+
+		/*if (isDying)
+		{
+			int falloff = 6 * (1.0f - (flareLife / FLARE_LIFE_MAX));
+
+			int r = FLARE_LIGHT_COLOR.x * 255;
+			int g = FLARE_LIGHT_COLOR.y * 255;
+			int b = FLARE_LIGHT_COLOR.z * 255;
+
+			TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, falloff, r, g, b);
+
+			result = (randomFloat < 0.9f);
+		}
+		else if (isEnding)
+		{
+			float multiplier = Random::GenerateFloat(0.05f, 1.0f);
+			int falloff = 8 * multiplier;
+
+			int r = FLARE_LIGHT_COLOR.x * 255 * multiplier;
+			int g = FLARE_LIGHT_COLOR.y * 255 * multiplier;
+			int b = FLARE_LIGHT_COLOR.z * 255 * multiplier;
+			TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, falloff, r, g, b);
+
+			result = (randomFloat < 0.4f);
+		}
+		else
+		{*/
+			float multiplier = Random::GenerateFloat(0.6f, 0.8f);
+			int falloff = 8 * (1.0f /* - (flareLife / FLARE_LIFE_MAX)*/);
+
+			int r = FLARE_LIGHT_COLOR.x * 255 * multiplier;
+			int g = FLARE_LIGHT_COLOR.y * 255 * multiplier;
+			int b = FLARE_LIGHT_COLOR.z * 255 * multiplier;
+			TriggerDynamicLight(lightPos.x, lightPos.y, lightPos.z, falloff, r, g, b);
+
+			result = (randomFloat < 0.3f);
+		//}
+		return result;
+		//return ((isDying || isEnding) ? result : true);
+	}
+
+	void GuardDoFlareInHand(ItemInfo* guardItem, int flareLife)
+	{
+		auto pos = GetJointPosition(guardItem, GUARD_EMPTY_HAND_BONE, Vector3i(-8,-105,38));
+
+		if (GuardDoFlareLight(pos, 1))
+			TriggerChaffEffects(*guardItem, 5);
+
+		/* Hardcoded code */
+
+	}
+
 	// TODO: Deal with LaraItem global.
 	void GuardControl(short itemNumber)
 	{
@@ -326,6 +453,24 @@ namespace TEN::Entities::Creatures::TR5
 
 		bool canJump1block = CanCreatureJump(*item, JumpDistance::Block1);
 		bool canJump2blocks = !canJump1block && CanCreatureJump(*item, JumpDistance::Block2);
+
+		bool lit = false;
+
+		auto& room_info = g_Level.Rooms[item->RoomNumber];
+		for (auto& light : room_info.lights) {
+			Vector3i lightPos = { light.x, light.y, light.z };
+			if (Vector3i::Distance(lightPos, item->Pose.Position) <= light.out)
+				lit = true;
+		}
+
+		/*if (!lit)
+		{
+			GuardDoFlareInHand(item, 1);
+		}*/
+
+
+		// Flashlight
+
 
 		if (creature->FiredWeapon)
 		{
@@ -497,6 +642,13 @@ namespace TEN::Entities::Creatures::TR5
 					item->Animation.TargetState = GUARD_STATE_RUN_FORWARD;
 				else if (Targetable(item, &AI) && item->ObjectNumber != ID_SCIENTIST)
 				{
+					auto lara = GetLaraInfo(LaraItem);
+					// DOn't attack Lara if she isn't armed.
+					if (creature->Enemy == LaraItem) {
+						if (!(lara->Control.HandStatus == HandStatus::WeaponReady && creature->Alerted)) {
+							break;
+						}
+					}
 					if (AI.distance >= GUARD_ATTACK_RANGE  && AI.zoneNumber == AI.enemyZone)
 					{
 						if (!(item->AIBits & MODIFY))

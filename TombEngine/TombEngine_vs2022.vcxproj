@@ -53,7 +53,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+    <OutDir>C:\Users\Peter\Documents\tomb\projects\Crete\Crete\Engine</OutDir>
     <ExecutablePath>$(ExecutablePath);$(DXSDK_DIR)Utilities\bin\x86</ExecutablePath>
     <IncludePath>$(SolutionDir)Libs;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\sol;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\zlib;$(SolutionDir)Libs\bass;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath);$(DXSDK_DIR)Lib\x86;$(SolutionDir)Libs\spdlog;$(SolutionDir)Libs\zlib\dll32;$(SolutionDir)Libs\lua;$(SolutionDir)Libs\ois;$(SolutionDir)Libs\bass</LibraryPath>
@@ -152,6 +152,7 @@ CALL gen.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Game\Lara\lara_tech.h" />
     <ClInclude Include="Objects\Generic\Switches\AirlockSwitch.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Game\collision\collide_item.h" />
@@ -179,6 +180,8 @@ CALL gen.bat</Command>
     <ClInclude Include="Objects\TR3\Trap\ElectricCleaner.h" />
     <ClInclude Include="Objects\TR3\Entity\Compsognathus.h" />
     <ClInclude Include="Objects\TR3\Entity\tr3_tony.h" />
+    <ClInclude Include="Objects\TR4\Entity\WraithInfo.h" />
+    <ClInclude Include="Objects\TR4\Object\tr4_wraithtrap.h" />
     <ClInclude Include="Objects\TR5\Entity\HeavyGuard.h" />
     <ClInclude Include="Objects\TR3\Entity\Lizard.h" />
     <ClInclude Include="Objects\TR3\Entity\PunaBoss.h" />
@@ -637,6 +640,7 @@ CALL gen.bat</Command>
     <ClInclude Include="Objects\TR5\Object\tr5_expandingplatform.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Game\Lara\lara_tech.cpp" />
     <ClCompile Include="Math\Interpolation.cpp" />
     <ClCompile Include="Game\Hud\StatusBars.cpp" />
     <ClCompile Include="Objects\Generic\Switches\AirlockSwitch.cpp" />
@@ -670,6 +674,7 @@ CALL gen.bat</Command>
     <ClCompile Include="Objects\TR3\Trap\ElectricCleaner.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Compsognathus.cpp" />
     <ClCompile Include="Objects\TR3\Entity\tr3_tony.cpp" />
+    <ClCompile Include="Objects\TR4\Object\tr4_wraithtrap.cpp" />
     <ClCompile Include="Objects\TR5\Entity\HeavyGuard.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Lizard.cpp" />
     <ClCompile Include="Objects\TR3\Entity\PunaBoss.cpp" />

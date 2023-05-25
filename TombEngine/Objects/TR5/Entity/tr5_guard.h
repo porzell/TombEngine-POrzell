@@ -18,4 +18,6 @@ namespace TEN::Entities::Creatures::TR5
 	void Mafia2Control(short itemNumber);
 
 	void GuardHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
+
+	std::string& GetGuardStateString(short itemNumber);
 }

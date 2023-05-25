@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara_one_gun.h"
+#include "Game/Lara/lara_tech.h"
 
 #include "Game/animation.h"
 #include "Game/camera.h"
@@ -1014,11 +1015,13 @@ void FireCrossbow(ItemInfo* laraItem, Pose* pos)
 	switch (lara.Weapons[(int)LaraWeaponType::Crossbow].SelectedAmmo)
 	{
 	case WeaponAmmoType::Ammo1:
-		item.ItemFlags[0] = (int)ProjectileType::Normal;
+		//item.ItemFlags[0] = (int)ProjectileType::Normal;
+		item.ItemFlags[0] = (int)ProjectileType::TrackerDart;
 		break;
 
 	case WeaponAmmoType::Ammo2:
-		item.ItemFlags[0] = (int)ProjectileType::Poison;
+		//item.ItemFlags[0] = (int)ProjectileType::Poison;
+		item.ItemFlags[0] = (int)ProjectileType::TranquilizerDart;
 		break;
 
 	case WeaponAmmoType::Ammo3:
@@ -1027,7 +1030,8 @@ void FireCrossbow(ItemInfo* laraItem, Pose* pos)
 	}
 
 	Rumble(0.2f, 0.1f);
-	SoundEffect(SFX_TR4_CROSSBOW_FIRE, &laraItem->Pose);
+	//SoundEffect(SFX_TR4_CROSSBOW_FIRE, &laraItem->Pose);
+	SoundEffect(SFX_TR2_HENCHMAN_FIRE_SILENCER, &laraItem->Pose);
 
 	Statistics.Level.AmmoUsed++;
 	Statistics.Game.AmmoUsed++;
@@ -1057,8 +1061,19 @@ void CrossbowBoltControl(short itemNumber)
 	auto prevPos = item.Pose.Position;
 	TranslateItem(&item, item.Pose.Orientation, item.Animation.Velocity.z);
 
-	int damage = (item.ItemFlags[0] == (int)ProjectileType::Explosive) ?
-		Weapons[(int)LaraWeaponType::Crossbow].ExplosiveDamage : Weapons[(int)LaraWeaponType::Crossbow].Damage;
+	/*int damage = (item.ItemFlags[0] == (int)ProjectileType::Explosive) ?
+		Weapons[(int)LaraWeaponType::Crossbow].ExplosiveDamage : Weapons[(int)LaraWeaponType::Crossbow].Damage;*/
+
+	int damage = 0;
+	switch ((ProjectileType)item.ItemFlags[0]) {
+
+		case ProjectileType::Normal:
+			damage = Weapons[(int)LaraWeaponType::Crossbow].Damage;
+		case ProjectileType::Explosive:
+			damage = Weapons[(int)LaraWeaponType::Crossbow].ExplosiveDamage;
+		default:
+			break;
+	}
 
 	HandleProjectile(item, *LaraItem, prevPos, (ProjectileType)item.ItemFlags[0], damage);
 }
@@ -1568,6 +1583,13 @@ void HandleProjectile(ItemInfo& item, ItemInfo& emitter, const Vector3i& prevPos
 
 					if (currentItem->IsLara())
 						GetLaraInfo(currentItem)->Status.Poison += 5;
+				}
+				// Peter: Attach tracker to item.
+				else if (type == ProjectileType::TrackerDart) {
+					lara_tech_place_tracker(currentItem);
+				}
+				else if (type == ProjectileType::TranquilizerDart) {
+					GetCreatureInfo(currentItem)->Tranquilized = true;
 				}
 				else if (!currentObject.undead)
 				{

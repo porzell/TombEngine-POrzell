@@ -370,7 +370,8 @@ namespace TEN::Renderer
 		std::unique_ptr<PrimitiveBatch<RendererVertex>> m_primitiveBatch;
 
 		// Text
-		std::unique_ptr<SpriteFont> m_gameFont;
+		std::shared_ptr<SpriteFont> m_gameFont;
+		std::shared_ptr<SpriteFont> m_techFont;
 		std::vector<RendererStringToDraw> m_strings;
 		int m_blinkColorValue;
 		int m_blinkColorDirection;
@@ -557,12 +558,15 @@ namespace TEN::Renderer
 		void DrawExamines();
 		void DrawDiary();
 		void DrawDebris(RenderView& view, bool transparent);
+		void DrawTrackers(); // Peter: 
+		void DrawFlashlight(RenderView& view); // Peter: 
 		void DrawFullScreenImage(ID3D11ShaderResourceView* texture, float fade, ID3D11RenderTargetView* target,
 		                         ID3D11DepthStencilView* depthTarget);
 		void DrawShockwaves(RenderView& view);
 		void DrawRipples(RenderView& view);
 		void DrawUnderwaterBloodParticles(RenderView& view);
 		void DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit = true);
+		void Draw2DSprite(RendererSprite* sprite, Vector2 pos, Vector2 size, DirectX::SimpleMath::Vector3 color, bool fit, float alpha = 1.0f); // Peter: 
 		void DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit = true);
 		void DrawSmokeParticles(RenderView& view);
 		void DrawSparkParticles(RenderView& view);
@@ -695,7 +699,8 @@ namespace TEN::Renderer
 		void DrawDisplayPickup(const DisplayPickup& pickup);
 		int  Synchronize();
 		void AddString(int x, int y, const char* string, D3DCOLOR color, int flags);
-		void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags);
+		//void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags); // Peter: Needed for LUA?
+		void AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags, std::shared_ptr<SpriteFont> font = nullptr);
 		void FreeRendererData();
 		void AddDynamicLight(int x, int y, int z, short falloff, byte r, byte g, byte b);
 		void RenderLoadingScreen(float percentage);

@@ -418,7 +418,14 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 	if (lara->Control.Weapon.HasFired)
 	{
-		AlertNearbyGuards(item);
+		printf("Checking if gun has lasersight... %i\n", (int)lara->Control.Weapon.GunType);
+		if (!(lara->Weapons[(int)lara->Control.Weapon.GunType].HasLasersight)) {
+			printf("Gun doesn't have lasersight\n");
+			AlertNearbyGuards(item);
+		}
+		else {
+			printf("Did'nt laert\n");
+		}
 		lara->Control.Weapon.HasFired = false;
 	}
 

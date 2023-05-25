@@ -7,6 +7,11 @@
 #include "Game/effects/weather.h"
 #include "Math/Math.h"
 #include "Specific/setup.h"
+#include "Game/Lara/lara_tech.h"
+#include "Game/misc.h"
+#include "Objects/TR5/Entity/tr5_guard.h"
+#include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara.h"
 
 using namespace TEN::Effects::Environment;
 using namespace TEN::Math;
@@ -431,6 +436,184 @@ namespace TEN::Renderer
 		vertices[3].UV.x = uvStart.x;
 		vertices[3].UV.y = uvEnd.y;
 		vertices[3].Color = Vector4(color.x, color.y, color.z, 1.0f);
+
+		m_context->VSSetShader(m_vsFullScreenQuad.Get(), nullptr, 0);
+		m_context->PSSetShader(m_psFullScreenQuad.Get(), nullptr, 0);
+
+		m_context->PSSetShaderResources(0, 1, &texture);
+		ID3D11SamplerState* sampler = m_states->AnisotropicClamp();
+		m_context->PSSetSamplers(0, 1, &sampler);
+
+		m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_context->IASetInputLayout(m_inputLayout.Get());
+
+		m_primitiveBatch->Begin();
+		m_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
+		m_primitiveBatch->End();
+	}
+
+	void Renderer11::DrawTrackers() {
+		static Vector2 size = { 0.06, 0.06 };
+		static bool growing = true;
+		static int index = 28;
+		static int counter = 0;
+
+		{
+			for (auto& trackedItem : g_trackedItems) {
+				auto& itemPos = GetJointPosition(trackedItem, 0, Vector3i(0, 0, 0));
+				Vector3 d3DPos(itemPos.x, itemPos.y, itemPos.z);
+				Vector2 screenPos = GetScreenSpacePosition(d3DPos);
+
+				// Default to white.
+				Vector3 color(1.0, 1.0, 1.0);
+
+				if (trackedItem->IsCreature()) {
+					auto* creature = GetCreatureInfo(trackedItem);
+					if (creature->Alerted)
+						color = Vector3(0.6, 0.0, 0.0);
+					else
+						color = Vector3(0.0, 0.7, 0.0);
+				}
+
+				//if (!(BinocularRange || TrInput & IN_LOOK))
+				SetBlendMode(BLENDMODE_ADDITIVE);
+				Draw2DSprite(&m_sprites[Objects[1378].meshIndex], screenPos, size, color, false);
+				if (!(BinocularRange || TrInput & IN_LOOK))
+					SetBlendMode(BLENDMODE_ADDITIVE);
+
+				std::string stateString;
+				if (trackedItem->HitPoints <= 0) {
+					stateString = "Neutralized";
+				}
+				else if (GetCreatureInfo(trackedItem)->Patrol)
+					stateString = "On patrol";
+				else if (trackedItem->ObjectNumber == ID_GUARD1 || trackedItem->ObjectNumber == ID_GUARD2 || trackedItem->ObjectNumber == ID_GUARD3) {
+					stateString = GetGuardStateString(trackedItem->Index);
+				}
+				else if (trackedItem->Animation.Velocity.Length() > 0) {
+					stateString = "Moving";
+				}
+				else
+					stateString = "Stationary";
+				
+				screenPos.y -= 45;
+				AddString(trackedItem->Name /* + "\nHealth: " + std::to_string(trackedItem->HitPoints) */, screenPos, Color(color), 0.8f, PRINTSTRING_CENTER | PRINTSTRING_OUTLINE, m_techFont);
+				screenPos.y += 15;
+				AddString("State: " + stateString /* + "\nHealth: " + std::to_string(trackedItem->HitPoints) */, screenPos, {0.8,0.8,0.8}, 0.5f, PRINTSTRING_CENTER, m_techFont);
+			}
+		}
+
+		if (growing)
+			size += {0.001, 0.001};
+		else
+			size -= {0.001, 0.001};
+
+		if (size.x >= 0.125) {
+			growing = false;
+		}
+		else if (size.x <= 0.06125) {
+			growing = true;
+		}
+		/*counter++;
+
+		if (counter == FPS) {
+			counter = 0;
+			index++;
+		}
+
+		if (index > 37) {
+			index = 0;
+		}*/
+
+		// Draw targeting reticle
+		if (GetLaraInfo(LaraItem)->TargetEntity) {
+			auto& itemPos = GetLaraInfo(LaraItem)->TargetEntity->Pose.Position;
+
+			Vector3 d3DPos(itemPos.x, itemPos.y, itemPos.z);
+			Vector2 screenPos = GetScreenSpacePosition(d3DPos);
+
+			SetBlendMode(BLENDMODE_ADDITIVE);
+			Draw2DSprite(&m_sprites[Objects[1379].meshIndex], screenPos, { 0.3,0.3 }, { 1.0f,0.0f,0.0f }, false, 0.2f);
+		}
+			
+	}
+
+	// Peter:
+	void Renderer11::Draw2DSprite(RendererSprite* sprite, Vector2 pos, Vector2 size, DirectX::SimpleMath::Vector3 color, bool fit, float alpha)
+	{
+		Vector2 uvStart = { 0.0f, 0.0f };
+		Vector2 uvEnd = { 1.0f, 1.0f };
+
+		// Get screen space coords
+		pos = pos / SCREEN_SPACE_RES;
+		pos = pos * 2;
+		pos -= Vector2(1, 1);
+		pos.y = -pos.y;
+
+		//size *= (float(m_screenHeight) / float(m_screenWidth));
+		size.y *= (float(m_screenWidth)/float(m_screenHeight));
+
+		//size = size / SCREEN_SPACE_RES;
+
+		ID3D11ShaderResourceView* texture = sprite->Texture->ShaderResourceView.Get();
+
+		if (fit)
+		{
+			float screenAspect = float(m_screenWidth) / float(m_screenHeight);
+			float imageAspect = float(sprite->Width) / float(sprite->Height);
+
+			if (screenAspect > imageAspect)
+			{
+				float diff = (screenAspect - imageAspect) / screenAspect / 2;
+				uvStart.y += diff;
+				uvEnd.y -= diff;
+			}
+			else
+			{
+				float diff = (imageAspect - screenAspect) / imageAspect / 2;
+				uvStart.x += diff;
+				uvEnd.x -= diff;
+			}
+		}
+
+		Vector2 scale = Vector2(sprite->Width / (float)sprite->Texture->Width, sprite->Height / (float)sprite->Texture->Height);
+		uvStart.x = uvStart.x * scale.x + sprite->UV[0].x;
+		uvStart.y = uvStart.y * scale.y + sprite->UV[0].y;
+		uvEnd.x = uvEnd.x * scale.x + sprite->UV[0].x;
+		uvEnd.y = uvEnd.y * scale.y + sprite->UV[0].y;
+
+		RendererVertex vertices[4];
+
+		vertices[0].Position.x = pos.x - size.x;
+		vertices[0].Position.y = pos.y + size.y;
+		vertices[0].Position.z = 0.0f;
+		vertices[0].UV.x = uvStart.x;
+		vertices[0].UV.y = uvStart.y;
+		vertices[0].Color = Vector4(color.x, color.y, color.z, alpha);
+
+		vertices[1].Position.x = pos.x + size.x;
+		vertices[1].Position.y = pos.y + size.y;
+		vertices[1].Position.z = 0.0f;
+		vertices[1].UV.x = uvEnd.x;
+		vertices[1].UV.y = uvStart.y;
+		vertices[1].Color = Vector4(color.x, color.y, color.z, alpha);
+
+		vertices[2].Position.x = pos.x + size.x;
+		vertices[2].Position.y = pos.y - size.y;
+		vertices[2].Position.z = 0.0f;
+		vertices[2].UV.x = uvEnd.x;
+		vertices[2].UV.y = uvEnd.y;
+		vertices[2].Color = Vector4(color.x, color.y, color.z, alpha);
+
+		vertices[3].Position.x = pos.x - size.x;
+		vertices[3].Position.y = pos.y - size.y;
+		vertices[3].Position.z = 0.0f;
+		vertices[3].UV.x = uvStart.x;
+		vertices[3].UV.y = uvEnd.y;
+		vertices[3].Color = Vector4(color.x, color.y, color.z, alpha);
+
+
+		SetBlendMode(BLENDMODE_ADDITIVE);
 
 		m_context->VSSetShader(m_vsFullScreenQuad.Get(), nullptr, 0);
 		m_context->PSSetShader(m_psFullScreenQuad.Get(), nullptr, 0);

@@ -5,6 +5,7 @@ namespace TEN::Renderer
 {
 	struct RendererStringToDraw
 	{
+		std::shared_ptr<SpriteFont> Font;
 		float X;
 		float Y;
 		int Flags;

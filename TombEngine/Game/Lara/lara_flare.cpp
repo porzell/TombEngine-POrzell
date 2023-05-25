@@ -416,6 +416,8 @@ void DoFlareInHand(ItemInfo* laraItem, int flareLife)
 
 bool DoFlareLight(const Vector3i& pos, int flareLife)
 {
+	return true;
+
 	if (flareLife >= FLARE_LIFE_MAX || flareLife == 0)
 		return false;
 

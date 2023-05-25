@@ -11,6 +11,7 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_tech.h"
 #include "Game/items.h"
 #include "Game/misc.h"
 #include "Game/pickup/pickup.h"
@@ -748,6 +749,16 @@ bool CreatureAnimation(short itemNumber, short angle, short tilt)
 	ProcessSectorFlags(item);
 	CreatureHealth(item);
 
+	auto& tracked = GetCreatureInfo(item)->Tracked;
+	
+	// Peter: If OCB 1 is set for creature, don't remove the tracker.
+	if (tracked && !item->TestOcb(1)) {
+		tracked--;
+		if (tracked <= 0) {
+			lara_tech_remove_tracker(item);
+		}
+	}
+
 	if (item->Status == ITEM_DEACTIVATED)
 	{
 		CreatureDie(itemNumber, false);
@@ -779,6 +790,10 @@ void CreatureDie(short itemNumber, bool explode)
 {
 	auto* item = &g_Level.Items[itemNumber];
 	auto* object = &Objects[item->ObjectNumber];
+
+	if (GetCreatureInfo(item)->Tracked) {
+		lara_tech_remove_tracker(item);
+	}
 
 	item->HitPoints = NOT_TARGETABLE;
 	item->Collidable = false;

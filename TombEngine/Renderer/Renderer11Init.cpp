@@ -296,7 +296,8 @@ void TEN::Renderer::Renderer11::InitialiseScreen(int w, int h, HWND handle, bool
 
 	// Initialise sprites and font
 	m_spriteBatch = std::make_unique<SpriteBatch>(m_context.Get());
-	m_gameFont = std::make_unique<SpriteFont>(m_device.Get(), L"Textures/Font.spritefont");
+	m_gameFont = std::make_shared<SpriteFont>(m_device.Get(), L"Textures/Font.spritefont");
+	m_techFont = std::make_shared<SpriteFont>(m_device.Get(), L"Textures/Tech.spritefont");
 	m_primitiveBatch = std::make_unique<PrimitiveBatch<RendererVertex>>(m_context.Get());
 
 	SetTextureOrDefault(loadingBarBorder, L"Textures/LoadingBarBorder.png");

@@ -20,6 +20,10 @@ enum class ProjectileType
 	Normal,
 	Poison,
 	Harpoon,
+	//Peter:
+	TrackerDart,
+	TranquilizerDart,
+	MicDart,
 	Explosive,
 	Grenade,
 	FragGrenade,
