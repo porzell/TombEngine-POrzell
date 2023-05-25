@@ -1539,7 +1539,10 @@ namespace TEN::Renderer
 		g_Hud.Draw(*LaraItem);
 
 		// Draw binoculars or lasersight
-		DrawOverlays(view); 
+		DrawOverlays(view);
+
+		// Peter: Draw all HUD trackers.
+		DrawTrackers();
 
 		time2 = std::chrono::high_resolution_clock::now();
 		m_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;

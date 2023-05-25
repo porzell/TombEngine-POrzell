@@ -10,7 +10,11 @@ namespace TEN::Renderer
 		AddString(std::string(string), Vector2(x, y), Color(color), 1.0f, flags);
 	}
 
-	void Renderer11::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags)
+	/*void Renderer11::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags) {
+		AddString(string, pos, color, scale, flags, nullptr);
+	}*/
+
+	void Renderer11::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags, std::shared_ptr<SpriteFont> font)
 	{
 		if (m_Locked)
 			return;
@@ -38,6 +42,7 @@ namespace TEN::Renderer
 				rString.Y = 0;
 				rString.Color = color.ToVector3() * UCHAR_MAX;
 				rString.Scale = (UIScale * fontScale) * scale;
+				rString.Font = font;
 
 				// Measure string.
 				auto size = Vector2(m_gameFont->MeasureString(rString.String.c_str()));
@@ -87,12 +92,19 @@ namespace TEN::Renderer
 
 		m_spriteBatch->Begin();
 
+		std::shared_ptr<SpriteFont> font;
+
 		for (const auto& rString : m_strings)
 		{
+			if (!rString.Font)
+				font = m_gameFont;
+			else
+				font = rString.Font;
+
 			// Draw shadow.
 			if (rString.Flags & PRINTSTRING_OUTLINE)
 			{
-				m_gameFont->DrawString(
+				font->DrawString(
 					m_spriteBatch.get(), rString.String.c_str(),
 					Vector2(rString.X + shadeOffset * rString.Scale, rString.Y + shadeOffset * rString.Scale),
 					Vector4(0.0f, 0.0f, 0.0f, 1.0f) * ScreenFadeCurrent,
@@ -100,7 +112,7 @@ namespace TEN::Renderer
 			}
 
 			// Draw string.
-			m_gameFont->DrawString(
+			font->DrawString(
 				m_spriteBatch.get(), rString.String.c_str(),
 				Vector2(rString.X, rString.Y),
 				Vector4(rString.Color.x / UCHAR_MAX, rString.Color.y / UCHAR_MAX, rString.Color.z / UCHAR_MAX, 1.0f) * ScreenFadeCurrent,

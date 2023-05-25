@@ -672,8 +672,8 @@ GameStatus HandleGlobalInputEvents(bool isTitle)
 	HandleOptics(LaraItem);
 
 	// Is Lara dead?
-	static constexpr int DEATH_NO_INPUT_TIMEOUT = 5 * FPS;
-	static constexpr int DEATH_INPUT_TIMEOUT = 10 * FPS;
+	static constexpr int DEATH_NO_INPUT_TIMEOUT = 30 * FPS;
+	static constexpr int DEATH_INPUT_TIMEOUT = 60 * FPS;
 
 	if (Lara.Control.Count.Death > DEATH_NO_INPUT_TIMEOUT ||
 		Lara.Control.Count.Death > DEATH_INPUT_TIMEOUT && !NoAction())

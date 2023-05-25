@@ -126,8 +126,13 @@ namespace TEN::Entities::Creatures::TR3
 					if (SameZone(creature, &targetItem))
 					{
 						float distance = Vector3i::Distance(item->Pose.Position, targetItem.Pose.Position);
-						if (distance < shortestDistance && targetItem.ObjectNumber == ID_CORPSE && targetItem.Active && TriggerActive(&targetItem) && targetItem.ItemFlags[1] == (int)CorpseFlags::Lying)
+						if (targetItem.IsCreature() && targetItem.HitPoints <= 0)
+						/* {
+
+						}
+						if (distance < shortestDistance && targetItem.ObjectNumber == ID_CORPSE && targetItem.Active && TriggerActive(&targetItem) && targetItem.ItemFlags[1] == (int)CorpseFlags::Lying)*/
 						{
+							printf("Found creature\n");
 							cadaverPos = targetItem.Pose.Position.ToVector3();
 							shortestDistance = distance;
 							item->ItemFlags[1] = ATTACK_CADAVER;

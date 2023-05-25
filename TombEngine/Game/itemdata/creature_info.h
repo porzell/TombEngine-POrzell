@@ -92,6 +92,7 @@ struct CreatureInfo
 	bool Friendly		  = false;
 	bool HurtByLara		  = false;
 	bool Poisoned		  = false;
+	bool Tranquilized     = false; // Peter:
 	bool JumpAhead		  = false;
 	bool MonkeySwingAhead = false;
 	bool ReachedGoal	  = false;
@@ -100,6 +101,8 @@ struct CreatureInfo
 	short Tosspad	  = 0;
 	short LocationAI  = 0;
 	short Flags		  = 0;
+
+	short Tracked = 0;     // Peter:
 
 #ifdef CREATURE_AI_PRIORITY_OPTIMIZATION
 	CreatureAIPriority Priority = CreatureAIPriority::None;

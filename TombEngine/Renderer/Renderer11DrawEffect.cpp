@@ -546,6 +546,13 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer11::DrawFlashlight(RenderView& view) {
+		/*AddSpriteBillboard(
+			&m_sprites[&m_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + 32],
+			uwBlood.Position,
+			color, 0.0f, 1.0f, Vector2(uwBlood.Size, uwBlood.Size) * 2, BLENDMODE_ADDITIVE, true, view);*/
+	}
+
 	void Renderer11::DrawShockwaves(RenderView& view)
 	{
 		unsigned char r = 0;
