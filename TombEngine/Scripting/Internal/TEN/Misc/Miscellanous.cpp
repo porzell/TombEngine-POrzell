@@ -143,11 +143,11 @@ namespace Misc
 	/// Play an audio track
 	//@function PlayAudioTrack
 	//@tparam string name of track (without file extension) to play
-	//@tparam bool loop if true, the track will loop; if false, it won't (default: false)
-	static void PlayAudioTrack(std::string const& trackName, TypeOrNil<bool> looped)
+	//@tparam int 0: One-shot 1: BGM (looped) 2: Voice
+	static void PlayAudioTrack(std::string const& trackName, TypeOrNil<int> mode)
 	{
-		auto mode = USE_IF_HAVE(bool, looped, false) ? SoundTrackType::BGM : SoundTrackType::OneShot;
-		PlaySoundTrack(trackName, mode);
+		auto modeVar = USE_IF_HAVE(int, mode, 0);
+		PlaySoundTrack(trackName, (SoundTrackType)modeVar);
 	}
 
 	///Set and play an ambient track

@@ -3,6 +3,14 @@
 
 #include "Game/animation.h"
 #include "Game/collision/collide_room.h"
+
+// Peter: 
+#include "Game/collision/collide_item.h"
+#include "Game/collision/collide_room.h"
+#include "Game/Lara/lara_one_gun.h"
+#include "debris.h"
+#include "tr5_smashobject.h"
+
 #include "Game/control/box.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
@@ -40,6 +48,8 @@ namespace TEN::Entities::Creatures::TR5
 
 	// Peter:
 	constexpr auto GUARD_EMPTY_HAND_BONE = 10;
+	constexpr auto GUARD_AMMO_CLIP_SIZE = 7;
+	constexpr auto GUARD_AMMO_FLAG_INDEX = 4;
 	constexpr auto FLARE_LIGHT_COLOR = Vector3(0.8f, 0.42947f, 0.2921f);
 
 	const auto SwatGunBite		  = BiteInfo(Vector3(80.0f, 200.0f, 13.0f), 0);
@@ -264,6 +274,9 @@ namespace TEN::Entities::Creatures::TR5
 		short roomItemNumber;
 
 		InitialiseCreature(itemNum);
+
+		// Peter: Give them a full magazine.
+		item->ItemFlags[GUARD_AMMO_FLAG_INDEX] = GUARD_AMMO_CLIP_SIZE;
 
 		switch ((GuardOcb)item->TriggerFlags)
 		{
@@ -733,6 +746,7 @@ namespace TEN::Entities::Creatures::TR5
 				if (!creature->Flags)
 				{
 					creature->FiredWeapon = 2;
+
 					creature->Flags = 1;
 
 					if (item->Animation.ActiveState == GUARD_STATE_SINGLE_FIRE_ATTACK)
@@ -747,6 +761,16 @@ namespace TEN::Entities::Creatures::TR5
 					GetJointPosition(item, &pos1, SwatGunBite.meshNum);
 					TriggerEnergyArc(&pos1, (Vector3i*)& LaraItem->pos, 192, 128, 192, 256, 150, 256, 0, ENERGY_ARC_STRAIGHT_LINE);*/
 
+					// Peter: Check ammo left in clip and reload if needed.
+					auto &ammo_in_clip = item->ItemFlags[GUARD_AMMO_FLAG_INDEX];
+
+					ammo_in_clip--;
+
+					if (ammo_in_clip <= 0) {
+						SetAnimation(item, GUARD_ANIM_RELOAD);
+						ammo_in_clip = GUARD_AMMO_CLIP_SIZE;
+						SoundEffect(SFX_TR4_LARA_RELOAD, &item->Pose);
+					}
 				}
 
 				break;
@@ -1697,6 +1721,57 @@ namespace TEN::Entities::Creatures::TR5
 				DoDamage(&target, INT_MAX);
 
 				return;
+			}
+			else if (jointIndex == GUARD_HEAD_MESH + 1) {
+				GetCollidedObjects(&target, 2048, true, CollidedItems, CollidedMeshes, 1);
+
+				if (CollidedItems[0] || CollidedMeshes[0])
+				{
+					int i = 0;
+					while (CollidedItems[i])
+					{
+						if (CollidedItems[i]->ObjectNumber >= ID_SMASH_OBJECT1 && CollidedItems[i]->ObjectNumber <= ID_SMASH_OBJECT16)
+						{
+							TriggerExplosionSparks(CollidedItems[i]->Pose.Position.x, CollidedItems[i]->Pose.Position.y, CollidedItems[i]->Pose.Position.z, 3, -2, 0, CollidedItems[i]->RoomNumber);
+							CollidedItems[i]->Pose.Position.y -= 128;
+							TriggerShockwave(&CollidedItems[i]->Pose, 48, 304, 96, 128, 96, 0, 24, EulerAngles::Zero, 0, true, false, (int)ShockwaveStyle::Normal);
+							CollidedItems[i]->Pose.Position.y += 128;
+							ExplodeItemNode(CollidedItems[i], 0, 0, 80);
+							SmashObject(CollidedItems[i] - g_Level.Items.data());
+							KillItem(CollidedItems[i] - g_Level.Items.data());
+						}
+						else if (CollidedItems[i]->ObjectNumber != ID_SWITCH_TYPE7 && CollidedItems[i]->ObjectNumber != ID_SWITCH_TYPE8)
+						{
+							if (Objects[CollidedItems[i]->ObjectNumber].intelligent)
+								auto& target = Objects[CollidedItems[i]->ObjectNumber];
+								DoExplosiveDamage(*LaraItem, *CollidedItems[i], target, 200);
+						}
+						else
+						{
+							/* @FIXME This calls CrossbowHitSwitchType78() */
+						}
+
+						++i;
+					}
+
+					i = 0;
+					while (CollidedMeshes[i])
+					{
+						if (StaticObjects[CollidedMeshes[i]->staticNumber].shatterType != SHT_NONE)
+						{
+							TriggerExplosionSparks(CollidedMeshes[i]->pos.Position.x, CollidedMeshes[i]->pos.Position.y, CollidedMeshes[i]->pos.Position.z, 3, -2, 0, target.RoomNumber);
+							CollidedMeshes[i]->pos.Position.y -= 128;
+							TriggerShockwave(&CollidedMeshes[i]->pos, 40, 176, 64, 128, 96, 0, 16, EulerAngles::Zero, 0, true, false, (int)ShockwaveStyle::Normal);
+							CollidedMeshes[i]->pos.Position.y += 128;
+							SoundEffect(GetShatterSound(CollidedMeshes[i]->staticNumber), &CollidedMeshes[i]->pos);
+							ShatterObject(NULL, CollidedMeshes[i], -128, target.RoomNumber, 0);
+						}
+
+						++i;
+					}
+
+					AlertNearbyGuards(&target);
+				}
 			}
 			else
 				DoBloodSplat(pos->x, pos->y, pos->z, 10, source.Pose.Orientation.y, pos->RoomNumber);

@@ -26,15 +26,51 @@ struct PistolDef
 	int Draw1Anim;
 	int Draw2Anim;
 	int RecoilAnim;
+	int ReloadAnim;
+};
+
+enum LaraTwoGunsStates {
+	LARA_TWO_GUNS_IDLE,
+	LARA_TWO_GUNS_DRAWING,
+	LARA_TWO_GUNS_AIMING,
+	LARA_TWO_GUNS_FIRING,
+	LARA_TWO_GUNS_RELOADING,
+	LARA_TWO_GUNS_UNAIMING,
+	LARA_TWO_GUNS_UNDRAWING
 };
 
 PistolDef PistolsTable[4] =
 {
-	{ ID_LARA, 0, 0, 0, 0 },
-	{ ID_PISTOLS_ANIM, 4, 5, 13, 24 },
-	{ ID_REVOLVER_ANIM , 7, 8, 15, 29 },
-	{ ID_UZI_ANIM, 4, 5, 13, 24 }
+	{ ID_LARA, 0, 0, 0, 0, 0 },
+	{ ID_PISTOLS_ANIM, 4, 5, 13, 24, 33 },
+	{ ID_REVOLVER_ANIM , 7, 8, 15, 29, 7 },
+	{ ID_UZI_ANIM, 4, 5, 13, 24, 4 }
 };
+
+constexpr Vector3i GunsmokeOffsets[4] = {
+	{0,0,0},
+	{4, 128, 40},
+	{16, 160, 56},
+	{-16, 140, 48}
+};
+
+short constexpr DefaultMagazineCounts[4] = {
+	0,
+	12,
+	6,
+	32
+};
+
+short MagazineCounts[4][2] = {
+	{ DefaultMagazineCounts[(int)LaraWeaponType::None], DefaultMagazineCounts[(int)LaraWeaponType::None]},
+	{ DefaultMagazineCounts[(int)LaraWeaponType::Pistol], DefaultMagazineCounts[(int)LaraWeaponType::Pistol]},
+	{ DefaultMagazineCounts[(int)LaraWeaponType::Revolver], DefaultMagazineCounts[(int)LaraWeaponType::Revolver]},
+	{ DefaultMagazineCounts[(int)LaraWeaponType::Uzi], DefaultMagazineCounts[(int)LaraWeaponType::Uzi]}
+};
+
+
+bool doReloadRight = false;
+bool doReloadLeft = false;
 
 void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 {
@@ -44,25 +80,20 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 
 	int fired = false;
 
+	if (lara->LeftArm.FrameNumber == p->ReloadAnim + 5) {
+		TriggerGunShell(0, ID_PISTOLS_AMMO_ITEM, weaponType); // Left hand
+		SoundEffect(SFX_TR4_LARA_RELOAD, &LaraItem->Pose);
+	}
+	if (lara->RightArm.FrameNumber == p->ReloadAnim + 5) {
+		TriggerGunShell(1, ID_PISTOLS_AMMO_ITEM, weaponType); // Left hand
+		SoundEffect(SFX_TR4_LARA_RELOAD, &LaraItem->Pose);
+	}
+
 	if (laraItem->MeshBits.TestAny())
 	{
 		if (lara->LeftArm.GunSmoke)
 		{
-			auto offset = Vector3i::Zero;
-			switch (weaponType)
-			{
-			case LaraWeaponType::Pistol:
-				offset = Vector3i(4, 128, 40);
-				break;
-
-			case LaraWeaponType::Revolver:
-				offset = Vector3i(16, 160, 56);
-				break;
-
-			case LaraWeaponType::Uzi:
-				offset = Vector3i(8, 140, 48);
-				break;
-			}
+			auto offset = GunsmokeOffsets[(int)weaponType];
 
 			auto pos = GetJointPosition(laraItem, LM_LHAND, offset);
 			TriggerGunSmoke(pos.x, pos.y, pos.z, 0, 0, 0, 0, weaponType, lara->LeftArm.GunSmoke);
@@ -70,21 +101,7 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 
 		if (lara->RightArm.GunSmoke)
 		{
-			auto offset = Vector3i::Zero;
-			switch (weaponType)
-			{
-			case LaraWeaponType::Pistol:
-				offset = Vector3i(-16, 128, 40);
-				break;
-
-			case LaraWeaponType::Revolver:
-				offset = Vector3i(-32, 160, 56);
-				break;
-
-			case LaraWeaponType::Uzi:
-				offset = Vector3i(-16, 140, 48);
-				break;
-			}
+			auto offset = GunsmokeOffsets[(int)weaponType];
 
 			auto pos = GetJointPosition(laraItem, LM_RHAND, offset);
 			TriggerGunSmoke(pos.x, pos.y, pos.z, 0, 0, 0, 0, weaponType, lara->RightArm.GunSmoke);
@@ -132,11 +149,24 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 							lara->Control.Weapon.UziRight = true;
 
 						Statistics.Game.AmmoUsed++;
+						MagazineCounts[(int)weaponType][1]--;
+
+						if (MagazineCounts[(int)weaponType][1] <= 0) {
+							MagazineCounts[(int)weaponType][1] = DefaultMagazineCounts[(int)weaponType];
+							//GetCreatureInfo(lara)
+							//SetAnimation(lara, )
+							doReloadRight = true;
+						}
 					}
 				}
 
 				// go to (3) SHOOT_CONTINUE start frame
 				frameRight = p->RecoilAnim;
+
+				if (doReloadRight) {
+					frameRight = p->ReloadAnim;
+					doReloadRight = false;
+				}
 			}
 			else if (lara->Control.Weapon.UziRight)
 			{
@@ -145,7 +175,7 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 			}
 		}
 		// at or beyond (3) SHOOT_CONTINUE start frame
-		else if (frameRight >= p->RecoilAnim)
+		else if (frameRight >= p->RecoilAnim && frameRight < p->ReloadAnim)
 		{
 			if (weaponType == LaraWeaponType::Uzi)
 			{
@@ -158,6 +188,14 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 
 			// at (3) SHOOT_CONTINUE end frame, go to (0) START_SHOOT end frame
 			if (frameRight == (p->RecoilAnim + weapon->RecoilFrame))
+				frameRight = p->Draw1Anim2;
+		}
+		else if (frameRight >= p->ReloadAnim) {
+			// increment toward (3) SHOOT_CONTINUE end frame (finish recoil before allowing to shoot again)
+			frameRight++;
+
+			// at (3) SHOOT_CONTINUE end frame, go to (0) START_SHOOT end frame
+			if (frameRight == (p->RecoilAnim + 23))
 				frameRight = p->Draw1Anim2;
 		}
 	}
@@ -173,6 +211,10 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 		// go back to ready stance
 		else if ((frameRight > 0) && (frameRight <= p->Draw1Anim2))
 			frameRight--;
+		else if (frameRight >= p->ReloadAnim && frameRight <= p->ReloadAnim + 23)
+			frameRight++;
+		else
+			frameRight = p->Draw1Anim2;
 
 		if (lara->Control.Weapon.UziRight)
 		{
@@ -224,9 +266,23 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 						lara->Control.Weapon.UziLeft = true;
 
 					Statistics.Game.AmmoUsed++;
+
+					MagazineCounts[(int)weaponType][0]--;
+
+					if (MagazineCounts[(int)weaponType][0] <= 0) {
+						MagazineCounts[(int)weaponType][0] = DefaultMagazineCounts[(int)weaponType];
+						//GetCreatureInfo(lara)
+						//SetAnimation(lara, )
+						doReloadLeft = true;
+					}
 				}
 
 				frameLeft = p->RecoilAnim;
+
+				if (doReloadLeft) {
+					frameLeft = p->ReloadAnim;
+					doReloadLeft = false;
+				}
 			}
 			else if (lara->Control.Weapon.UziLeft)
 			{
@@ -234,7 +290,7 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 				lara->Control.Weapon.UziLeft = false;
 			}
 		}
-		else if (frameLeft >= p->RecoilAnim)
+		else if (frameLeft >= p->RecoilAnim && frameLeft <= p->RecoilAnim)
 		{
 			if (weaponType == LaraWeaponType::Uzi)
 			{
@@ -247,6 +303,14 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 			if (frameLeft == (p->RecoilAnim + weapon->RecoilFrame))
 				frameLeft = p->Draw1Anim2;
 		}
+		else if (frameRight >= p->ReloadAnim) {
+			// increment toward (3) SHOOT_CONTINUE end frame (finish recoil before allowing to shoot again)
+			frameRight++;
+
+			// at (3) SHOOT_CONTINUE end frame, go to (0) START_SHOOT end frame
+			if (frameRight == (p->RecoilAnim + 23))
+				frameRight = p->Draw1Anim2;
+		}
 	}
 	else       																// Havent GOT a LOCK ON..
 	{
@@ -256,6 +320,10 @@ void AnimatePistols(ItemInfo* laraItem, LaraWeaponType weaponType)
 			frameLeft = p->Draw1Anim2;
 		else if ((frameLeft > 0) && (frameLeft <= p->Draw1Anim2))
 			frameLeft--;
+		else if (frameLeft >= p->ReloadAnim && frameLeft <= p->ReloadAnim + 23)
+			frameLeft++;
+		else
+			frameLeft = p->Draw1Anim2;
 
 		if (lara->Control.Weapon.UziLeft)
 		{

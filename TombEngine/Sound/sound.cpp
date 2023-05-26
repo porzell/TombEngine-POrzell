@@ -54,6 +54,26 @@ void SetVolumeMusic(int vol)
 	}
 }
 
+bool IsSoundTrackPlaying(SoundTrackType mode)
+{
+	return BASS_ChannelIsActive(BASS_Soundtrack[(int)mode].Channel);
+}
+
+float GetSoundTrackLevel(SoundTrackType mode) {
+
+	auto& channel = BASS_Soundtrack[(int)mode].Channel;
+
+	//BASS_CHANNELINFO ci;
+	//BASS_ChannelGetInfo(channel, &ci);
+	//TENLog(ci.chans)
+	float levels = 0.0f;
+	if (!BASS_ChannelGetLevelEx(channel, &levels, 0.05, BASS_LEVEL_MONO | BASS_LEVEL_RMS)) {
+		Sound_CheckBASSError("Could not get OneShot levels!", true);
+	}
+
+	return levels;
+}
+
 void SetVolumeFX(int vol)
 {
 	GlobalFXVolume = vol;
@@ -396,15 +416,19 @@ void PlaySoundTrack(std::string track, SoundTrackType mode, QWORD position)
 
 	switch (mode)
 	{
-	case SoundTrackType::OneShot:
-		crossfadeTime = SOUND_XFADETIME_ONESHOT;
-		break;
+		case SoundTrackType::OneShot:
+			crossfadeTime = SOUND_XFADETIME_ONESHOT;
+			break;
 
-	case SoundTrackType::BGM:
-		crossfade = true;
-		crossfadeTime = channelActive ? SOUND_XFADETIME_BGM : SOUND_XFADETIME_BGM_START;
-		flags |= BASS_SAMPLE_LOOP;
-		break;
+		case SoundTrackType::BGM:
+			crossfade = true;
+			crossfadeTime = channelActive ? SOUND_XFADETIME_BGM : SOUND_XFADETIME_BGM_START;
+			flags |= BASS_SAMPLE_LOOP;
+			break;
+
+		case SoundTrackType::Voice:
+			crossfade = false;
+			break;
 	}
 
 	auto fullTrackName = TRACKS_PATH + track + ".ogg";
@@ -517,6 +541,7 @@ void StopSoundTracks()
 {
 	StopSoundTrack(SoundTrackType::OneShot, SOUND_XFADETIME_ONESHOT);
 	StopSoundTrack(SoundTrackType::BGM, SOUND_XFADETIME_ONESHOT);
+	StopSoundTrack(SoundTrackType::Voice, SOUND_XFADETIME_ONESHOT);
 }
 
 void StopSoundTrack(SoundTrackType mode, int fadeoutTime)

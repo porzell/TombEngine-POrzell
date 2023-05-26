@@ -457,6 +457,11 @@ namespace TEN::Renderer
 		static bool growing = true;
 		static int index = 28;
 		static int counter = 0;
+		static int frame = 0;
+		static Vector3 color = { 0.2,0.2,0.2 };
+		static ItemInfo* lastTarget = nullptr;
+
+		static Vector2 scale{ 1.0,1.0 };
 
 		{
 			for (auto& trackedItem : g_trackedItems) {
@@ -475,26 +480,30 @@ namespace TEN::Renderer
 						color = Vector3(0.0, 0.7, 0.0);
 				}
 
-				//if (!(BinocularRange || TrInput & IN_LOOK))
-				SetBlendMode(BLENDMODE_ADDITIVE);
-				Draw2DSprite(&m_sprites[Objects[1378].meshIndex], screenPos, size, color, false);
-				if (!(BinocularRange || TrInput & IN_LOOK))
-					SetBlendMode(BLENDMODE_ADDITIVE);
-
 				std::string stateString;
 				if (trackedItem->HitPoints <= 0) {
+					color = { 0.3,0.3,0.3 };
 					stateString = "Neutralized";
 				}
 				else if (GetCreatureInfo(trackedItem)->Patrol)
 					stateString = "On patrol";
 				else if (trackedItem->ObjectNumber == ID_GUARD1 || trackedItem->ObjectNumber == ID_GUARD2 || trackedItem->ObjectNumber == ID_GUARD3) {
 					stateString = GetGuardStateString(trackedItem->Index);
+
+					if (stateString == "Neutralized")
+						color = { 0.3,0.3,0.3 };
 				}
 				else if (trackedItem->Animation.Velocity.Length() > 0) {
 					stateString = "Moving";
 				}
 				else
 					stateString = "Stationary";
+
+				//if (!(BinocularRange || TrInput & IN_LOOK))
+				SetBlendMode(BLENDMODE_ADDITIVE);
+				Draw2DSprite(&m_sprites[Objects[1378].meshIndex], screenPos, size, color, false);
+				if (!(BinocularRange || TrInput & IN_LOOK))
+					SetBlendMode(BLENDMODE_ADDITIVE);
 				
 				screenPos.y -= 45;
 				AddString(trackedItem->Name /* + "\nHealth: " + std::to_string(trackedItem->HitPoints) */, screenPos, Color(color), 0.8f, PRINTSTRING_CENTER | PRINTSTRING_OUTLINE, m_techFont);
@@ -527,13 +536,41 @@ namespace TEN::Renderer
 
 		// Draw targeting reticle
 		if (GetLaraInfo(LaraItem)->TargetEntity) {
-			auto& itemPos = GetLaraInfo(LaraItem)->TargetEntity->Pose.Position;
+
+			if (GetLaraInfo(LaraItem)->TargetEntity != lastTarget)
+			{
+				scale = { 1.0,1.0 };
+				color = { 0.1f,0.1f,0.1f };
+				lastTarget = GetLaraInfo(LaraItem)->TargetEntity;
+			}
+			auto& itemPos = GetJointPosition(GetLaraInfo(LaraItem)->TargetEntity, 0, Vector3i(0, 0, 0));
 
 			Vector3 d3DPos(itemPos.x, itemPos.y, itemPos.z);
 			Vector2 screenPos = GetScreenSpacePosition(d3DPos);
 
+			if (scale.x > 0.2) {
+				scale.x -= 0.05;
+				scale.y -= 0.05;
+			}
+
+			if (GetLaraInfo(LaraItem)->TargetEntity->HitPoints <= 0)
+				color = { 0.1,0.1,0.1 };
+
+			color.x += (1.0f) / 60;
+			//color.y += (1.0f) / 30;
+			//color.z += (1.0f) / 30;
+
+			if (color.x > 0.5f) {
+				color = { 0.5f,0.0f,0.0f };
+			}
+
 			SetBlendMode(BLENDMODE_ADDITIVE);
-			Draw2DSprite(&m_sprites[Objects[1379].meshIndex], screenPos, { 0.3,0.3 }, { 1.0f,0.0f,0.0f }, false, 0.2f);
+			Draw2DSprite(&m_sprites[Objects[1379].meshIndex] + (frame), screenPos, scale, color, false, 1.0f);
+			
+			frame++;
+
+			if (frame >= 30)
+				frame = 0;
 		}
 			
 	}

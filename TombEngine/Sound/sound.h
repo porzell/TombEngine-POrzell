@@ -35,6 +35,7 @@ enum class SoundTrackType
 {
 	OneShot,
 	BGM,
+	Voice,
 	Count
 };
 
@@ -157,6 +158,8 @@ void PlaySoundTrack(std::string trackName, short mask = 0);
 void PlaySoundTrack(int index, short mask = 0);
 void StopSoundTrack(SoundTrackType mode, int fadeoutTime);
 void StopSoundTracks();
+bool IsSoundTrackPlaying(SoundTrackType mode);
+float GetSoundTrackLevel(SoundTrackType mode);
 void ClearSoundTrackMasks();
 void PlaySecretTrack();
 void SayNo();

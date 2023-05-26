@@ -80,9 +80,9 @@ void FlareControl(short itemNumber)
 		life++;
 	}
 
-	if (DoFlareLight(flareItem.Pose.Position, life))
+	if (true/*DoFlareLight(flareItem.Pose.Position, life)*/)
 	{
-		TriggerChaffEffects(flareItem, life);
+		//TriggerChaffEffects(flareItem, life);
 		/* Hardcoded code */
 
 		life |= 0x8000;
@@ -390,8 +390,8 @@ void DoFlareInHand(ItemInfo* laraItem, int flareLife)
 
 	auto pos = GetJointPosition(laraItem, LM_LHAND, Vector3i(11, 32, 41));
 
-	if (DoFlareLight(pos, flareLife))
-		TriggerChaffEffects(BinocularOn ? 0 : flareLife);
+	/*if (DoFlareLight(pos, flareLife))
+		TriggerChaffEffects(BinocularOn ? 0 : flareLife);*/
 
 	/* Hardcoded code */
 

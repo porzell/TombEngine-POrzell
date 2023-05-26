@@ -52,6 +52,27 @@ LaraInfo Lara = {};
 ItemInfo* LaraItem;
 CollisionInfo LaraCollision = {};
 
+constexpr GAME_OBJECT_ID LaraActorFaces[] = {
+	ID_LARA_SPEECH_HEAD4,
+	ID_LARA_SPEECH_HEAD1,
+	ID_LARA_SPEECH_HEAD2,
+	ID_LARA_SPEECH_HEAD3,
+};
+
+/*constexpr float LaraActorFaceAudioThresholds[] = {
+	0.1f,
+	0.2f,
+	0.6f,
+	0.8f
+};*/
+
+constexpr float LaraActorFaceAudioThresholds[] = {
+	0.05f,
+	0.1f,
+	0.2f,
+	0.3f
+};
+
 std::function<LaraRoutineFunction> lara_control_routines[NUM_LARA_STATES + 1] =
 {
 	lara_as_walk_forward,
@@ -415,6 +436,18 @@ std::function<LaraRoutineFunction> lara_collision_routines[NUM_LARA_STATES + 1] 
 void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
+
+	item->Model.MeshIndex[14] = item->Model.BaseMesh + 14;
+
+	// Make Lara's mouth move.
+	if (item->TestOcb(1) && IsSoundTrackPlaying(SoundTrackType::Voice)) {
+		float level = GetSoundTrackLevel(SoundTrackType::Voice);
+		for (size_t i = 0; i < sizeof(LaraActorFaceAudioThresholds) / sizeof(LaraActorFaceAudioThresholds[0]); ++i) {
+			if (level >= LaraActorFaceAudioThresholds[i]) {
+				item->Model.MeshIndex[14] = Objects[LaraActorFaces[i]].meshIndex + 14;
+			}
+		}
+	}
 
 	if (lara->Control.Weapon.HasFired)
 	{

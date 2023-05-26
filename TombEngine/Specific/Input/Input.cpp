@@ -6,6 +6,7 @@
 #include <OISInputManager.h>
 #include <OISJoyStick.h>
 #include <OISKeyboard.h>
+#include <OISMouse.h>
 
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -73,6 +74,7 @@ namespace TEN::Input
 	// OIS interfaces
 	InputManager*  OisInputManager = nullptr;
 	Keyboard*	   OisKeyboard	   = nullptr;
+	Mouse*         OisMouse        = nullptr; // Peter: 
 	JoyStick*	   OisGamepad	   = nullptr;
 	ForceFeedback* OisRumble	   = nullptr;
 	Effect*		   OisEffect	   = nullptr;
@@ -86,6 +88,8 @@ namespace TEN::Input
 
 	int DbInput = 0;
 	int TrInput = 0;
+
+	MouseInfo TrMouse{};
 
 	auto DefaultBindings = std::vector<int>
 	{
@@ -150,6 +154,11 @@ namespace TEN::Input
 				TENLog("Keyboard not found!", LogLevel::Warning);
 			else
 				OisKeyboard = (Keyboard*)OisInputManager->createInputObject(OISKeyboard, true);
+
+			if (OisInputManager->getNumberOfDevices(OISMouse) == 0)
+				TENLog("Mouse not found!", LogLevel::Warning);
+			else
+				OisMouse = (Mouse*)OisInputManager->createInputObject(OISMouse, true);
 		}
 		catch (OIS::Exception& ex)
 		{
@@ -185,6 +194,10 @@ namespace TEN::Input
 	{
 		if (OisKeyboard)
 			OisInputManager->destroyInputObject(OisKeyboard);
+
+		// Peter:
+		if (OisMouse)
+			OisInputManager->destroyInputObject(OisMouse);
 
 		if (OisGamepad)
 			OisInputManager->destroyInputObject(OisGamepad);
@@ -409,6 +422,26 @@ namespace TEN::Input
 		catch (OIS::Exception& ex)
 		{
 			TENLog("Unable to poll game controller input: " + std::string(ex.eText), LogLevel::Warning);
+		}
+	}
+
+	void ReadMouse() {
+		if (!OisMouse)
+			return;
+
+		try {
+			OisMouse->capture();
+
+			auto& state = OisMouse->getMouseState();
+			float val = (float)state.X.rel / (float)state.width;
+
+			if (state.buttonDown(OIS::MB_Left)) {
+				TrInput |= IN_ACTION;
+			}
+		}
+		catch (OIS::Exception& ex)
+		{
+			TENLog("Unable to poll mouse input: " + std::string(ex.eText), LogLevel::Warning);
 		}
 	}
 
@@ -658,6 +691,7 @@ namespace TEN::Input
 		UpdateRumble();
 		ReadKeyboard();
 		ReadGameController();
+		ReadMouse(); // Peter: 
 		DefaultConflict();
 
 		// Update action map (mappable actions only).

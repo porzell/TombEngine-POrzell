@@ -76,6 +76,11 @@ namespace TEN::Input
 		IN_DESELECT   = (1 << (KEY_COUNT + 3)),
 		IN_LOOKSWITCH = (1 << (KEY_COUNT + 4))
 	};
+
+	struct MouseInfo {
+		short MouseBButtons;
+
+	};
 	
 	// Temporary input constants for use with vehicles:
 
