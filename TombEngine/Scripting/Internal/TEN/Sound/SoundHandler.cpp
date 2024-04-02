@@ -8,6 +8,8 @@
 #include "Scripting/Internal/TEN/Vec3/Vec3.h"
 #include "Sound/sound.h"
 
+#include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
+
 /// Functions for sound management.
 // @tentable Sound
 // @pragma nostrip
@@ -62,9 +64,9 @@ namespace TEN::Scripting::Sound
 	//@function PlaySound
 	//@tparam int sound ID to play. Corresponds to the value in the sound XML file or Tomb Editor's "Sound Infos" window.
 	////@tparam[opt] Vec3 position The 3D position of the sound, i.e. where the sound "comes from". If not given, the sound will not be positional.
-	static void PlaySoundEffect(int soundID, sol::optional<Vec3> pos)
+	static void PlaySoundEffect(int soundID, sol::optional<Vec3> pos, sol::optional<Moveable&> owner)
 	{
-		SoundEffect(soundID, pos.has_value() ? &Pose(pos->ToVector3i()) : nullptr, SoundEnvironment::Always);
+		SoundEffect(soundID, pos.has_value() ? &Pose(pos->ToVector3i()) : nullptr, SoundEnvironment::Always, owner.has_value() ? owner->GetIndex() : -1);
 	}
 
 	/// Stop sound effect
@@ -73,6 +75,14 @@ namespace TEN::Scripting::Sound
 	static void StopSound(int id)
 	{
 		StopSoundEffect(id);
+	}
+
+	/// Stop sounds by sound owner
+	//@function StopSoundsForOwner
+	//@tparam owner A Moveable owner.
+	static void StopSoundsForOwner(Moveable &owner)
+	{
+		StopSoundEffectsForOwner(owner.GetIndex());
 	}
 
 	/// Check if the sound effect is playing
@@ -89,6 +99,23 @@ namespace TEN::Scripting::Sound
 	static bool IsAudioTrackPlaying(const std::string& trackName)
 	{
 		return Sound_TrackIsPlaying(trackName);
+	}
+
+	/// Check if an owner Moveable is playing a sound effect
+	//@function IsSoundPlayingForOwner
+	//@tparam object A moveable object.
+	static bool IsSoundPlayingForOwner(Moveable& object)
+	{
+		return Sound_IsOwnerPlayingSound(object.GetIndex());
+	}
+
+	/// Get loudness of owned sound for an owner Moveable
+	//@function GetSoundLoudnessForOwner
+	//@tparam object A moveable object.
+	//@tparam smoothing A smoothing value to prevent spikes. (default 0.04f)
+	static bool GetSoundLoudnessForOwner(Moveable& object, std::optional<float> smoothing)
+	{
+		return Sound_GetOwnerChannelLoudness(object.GetIndex(), smoothing.has_value() ? *smoothing : 0.04f);
 	}
 
 	///Get current subtitle string for a voice track currently playing.
@@ -122,7 +149,10 @@ namespace TEN::Scripting::Sound
 		tableSound.set_function(ScriptReserved_GetAudioTrackLoudness, &GetAudioTrackLoudness);
 		tableSound.set_function(ScriptReserved_PlaySound, &PlaySoundEffect);
 		tableSound.set_function(ScriptReserved_StopSound, &StopSound);
+		tableSound.set_function(ScriptReserved_StopSoundsForOwner, &StopSoundsForOwner);
 		tableSound.set_function(ScriptReserved_IsSoundPlaying, &IsSoundPlaying);
+		tableSound.set_function(ScriptReserved_IsSoundPlayingForOwner, &IsSoundPlayingForOwner);
+		tableSound.set_function(ScriptReserved_GetSoundLoudnessForOwner, &GetSoundLoudnessForOwner);
 		tableSound.set_function(ScriptReserved_IsAudioTrackPlaying, &IsAudioTrackPlaying);
 		tableSound.set_function(ScriptReserved_GetCurrentSubtitle, &GetCurrentVoiceTrackSubtitle);
 

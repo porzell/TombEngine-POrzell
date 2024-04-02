@@ -93,6 +93,7 @@ struct SoundEffectSlot
 	float Gain;
 	HCHANNEL Channel;
 	Vector3 Origin;
+	short Owner;
 };
 
 struct SoundTrackSlot
@@ -151,8 +152,9 @@ struct SoundSourceInfo
 extern std::map<std::string, int> SoundTrackMap;
 extern std::unordered_map<int, SoundTrackInfo> SoundTracks;
 
-bool SoundEffect(int effectID, Pose* position, SoundEnvironment condition = SoundEnvironment::Land, float pitchMultiplier = 1.0f, float gainMultiplier = 1.0f);
+bool SoundEffect(int effectID, Pose* position, SoundEnvironment condition = SoundEnvironment::Land, float pitchMultiplier = 1.0f, float gainMultiplier = 1.0f, short owner = -1);
 void StopSoundEffect(short effectID);
+void StopSoundEffectsForOwner(short owner);
 bool LoadSample(char *buffer, int compSize, int uncompSize, int currentIndex);
 void FreeSamples();
 void StopAllSounds();
@@ -191,6 +193,9 @@ int   Sound_EffectIsPlaying(int effectID, Pose *position);
 int   Sound_TrackIsPlaying(const std::string& fileName);
 float Sound_DistanceToListener(Pose *position);
 float Sound_DistanceToListener(Vector3 position);
+float Sound_GetChannelLoudness(int index, float smoothing);
+float Sound_GetOwnerChannelLoudness(short ownerIndex, float smoothing);
+bool Sound_IsOwnerPlayingSound(short ownerIndex);
 float Sound_Attenuate(float gain, float distance, float radius);
 bool  Sound_UpdateEffectPosition(int index, Pose *position, bool force = false);
 bool  Sound_UpdateEffectAttributes(int index, float pitch, float gain);

@@ -150,7 +150,7 @@ bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
 	return true;
 }
 
-bool SoundEffect(int effectID, Pose* position, SoundEnvironment condition, float pitchMultiplier, float gainMultiplier)
+bool SoundEffect(int effectID, Pose* position, SoundEnvironment condition, float pitchMultiplier, float gainMultiplier, short owner)
 {
 	if (!g_Configuration.EnableSound)
 		return false;
@@ -280,12 +280,16 @@ bool SoundEffect(int effectID, Pose* position, SoundEnvironment condition, float
 	if (Sound_CheckBASSError("Trying to create channel for sample %d", false, sampleToPlay))
 		return false;
 
+	if (owner != -1)
+		StopSoundEffectsForOwner(owner);
+
 	// Finally ready to play sound, assign it to sound slot.
 	SoundSlot[freeSlot].State = SoundState::Idle;
 	SoundSlot[freeSlot].EffectID = effectID;
 	SoundSlot[freeSlot].Channel = channel;
 	SoundSlot[freeSlot].Gain = gain;
 	SoundSlot[freeSlot].Origin = position ? Vector3(position->Position.x, position->Position.y, position->Position.z) : SOUND_OMNIPRESENT_ORIGIN;
+	SoundSlot[freeSlot].Owner = owner;
 
 	if (Sound_CheckBASSError("Applying pitch/gain attribs on channel %x, sample %d", false, channel, sampleToPlay))
 		return false;
@@ -368,6 +372,14 @@ void StopSoundEffect(short effectID)
 	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
 	{
 		if (SoundSlot[i].Channel != NULL && SoundSlot[i].EffectID == effectID && BASS_ChannelIsActive(SoundSlot[i].Channel) == BASS_ACTIVE_PLAYING)
+			Sound_FreeSlot(i, SOUND_XFADETIME_CUTSOUND);
+	}
+}
+
+void StopSoundEffectsForOwner(short owner) {
+	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
+	{
+		if (SoundSlot[i].Channel != NULL && SoundSlot[i].Owner == owner && BASS_ChannelIsActive(SoundSlot[i].Channel) == BASS_ACTIVE_PLAYING)
 			Sound_FreeSlot(i, SOUND_XFADETIME_CUTSOUND);
 	}
 }
@@ -781,6 +793,58 @@ int Sound_EffectIsPlaying(int effectID, Pose *position)
 	return SOUND_NO_CHANNEL;
 }
 
+float Sound_GetChannelLoudness(int index, float smoothing) {
+	float levels = 0.0f;
+	if (!BASS_ChannelGetLevelEx(SoundSlot[index].Channel, &levels, smoothing, BASS_LEVEL_MONO | BASS_LEVEL_RMS)) {
+		Sound_CheckBASSError("Could not get SOUND EFFECT levels!", true);
+	}
+	return levels;
+}
+
+float Sound_GetOwnerChannelLoudness(short ownerIndex, float smoothing) {
+	float levels = 0.0f;
+
+	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
+	{
+		if (SoundSlot[i].Owner == ownerIndex)
+		{
+			// Free channel.
+			if (SoundSlot[i].Channel == NULL)
+				break;
+
+			if (BASS_ChannelIsActive(SoundSlot[i].Channel))
+			{
+
+				if (!BASS_ChannelGetLevelEx(SoundSlot[i].Channel, &levels, smoothing, BASS_LEVEL_MONO | BASS_LEVEL_RMS)) {
+					Sound_CheckBASSError("Could not get SOUND EFFECT levels!", true);
+				}
+				// Levels is set above.
+				break;
+			}
+		}
+	}
+	return levels;
+}
+
+bool Sound_IsOwnerPlayingSound(short ownerIndex) {
+	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
+	{
+		if (SoundSlot[i].Owner == ownerIndex)
+		{
+			// Free channel.
+			if (SoundSlot[i].Channel == NULL)
+				break;
+
+			if (BASS_ChannelIsActive(SoundSlot[i].Channel))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
 // Gets the distance to the source.
 float Sound_DistanceToListener(Pose *position)
 {
@@ -888,6 +952,10 @@ void Sound_UpdateScene()
 		if ((SoundSlot[i].Channel != NULL) && (BASS_ChannelIsActive(SoundSlot[i].Channel) == BASS_ACTIVE_PLAYING))
 		{
 			SampleInfo* sampleInfo = &g_Level.SoundDetails[g_Level.SoundMap[SoundSlot[i].EffectID]];
+
+			// If sound has an active owner, move the sound with the owner.
+			if (SoundSlot[i].Owner != -1 && &g_Level.Items[SoundSlot[i].Owner].Active)
+				Sound_UpdateEffectPosition(i, &g_Level.Items[SoundSlot[i].Owner].Pose);
 
 			// Stop and clean up sounds which were in ending state in previous frame.
 			// In case sound is looping, make it ending unless they are re-fired in next frame.
